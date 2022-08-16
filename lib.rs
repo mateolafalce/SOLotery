@@ -1,8 +1,8 @@
 use anchor_lang::{prelude::*,
 solana_program::account_info::AccountInfo
-};
+};use core::mem::size_of;
 use oorandom; 
-declare_id!("8FL8ZJpy1FjxyeUxFVjMcnZQpFDebzNP7Efh5SqcmyCA");
+declare_id!("FkxCCZQC9GSHEN5BUtYgAj5sbjSZvdmJRMzsUnxqky9F");
 #[program]
 pub mod so_lotery_source {
     use super::*;
@@ -11,7 +11,7 @@ pub mod so_lotery_source {
         authority: Pubkey,
     ) -> Result<()> {
         let solotery:&mut Account<SoLotery> = &mut ctx.accounts.solotery;
-        solotery.authority = authority;
+        solotery.authority = ctx.accounts.user.key();
         //solotery.seed: u64 = 19963;
         solotery.players = 1;
         solotery.choose_winner_only_one_time = 0;
@@ -97,11 +97,13 @@ pub mod so_lotery_source {
 }
 #[derive(Accounts)]
 pub struct Create<'info> {
-    #[account(init, payer = user, space = 8 + 32 +8 + 8 + 32 + 1, seeds = [b"SOLotery", authority().as_ref()], bump)]
+    #[account(init, seeds = [b"SOLotery", from.key().as_ref()], bump, payer = user, space = 8 + 32 + 8 + 8 + 32 + 1)]
     pub solotery: Account<'info, SoLotery>,
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
+    /// CHECK: dick
+    pub from: AccountInfo<'info>,
 }
 #[derive(Accounts)]
 pub struct Ticket<'info> {
@@ -170,7 +172,6 @@ pub struct SoLotery {
     pub choose_winner_only_one_time: u8,
 }
 #[account]
-#[derive(Default)]
 pub struct PlayerPDA {
     pub user: Pubkey,
 }
