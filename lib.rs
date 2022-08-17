@@ -1,6 +1,6 @@
 use anchor_lang::{prelude::*,
 solana_program::account_info::AccountInfo
-};use core::mem::size_of;
+};use core::mem::size_of; use std::str::FromStr;
 use oorandom; 
 declare_id!("FkxCCZQC9GSHEN5BUtYgAj5sbjSZvdmJRMzsUnxqky9F");
 #[program]
@@ -9,6 +9,7 @@ pub mod so_lotery_source {
     pub fn create_stake(
         ctx: Context<Create>,
         authority: Pubkey,
+        bump: u8,
     ) -> Result<()> {
         let solotery:&mut Account<SoLotery> = &mut ctx.accounts.solotery;
         solotery.authority = ctx.accounts.user.key();
@@ -23,9 +24,6 @@ pub mod so_lotery_source {
     ) -> Result<()> {
         let from = &mut ctx.accounts.from;let stake = &mut ctx.accounts.stake;
         let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
-        /*if solotery.players.len() > 100 {
-            return Err(ErrorCode::LimitPlayers.into());
-        }*/
         solotery.players += 1;
         //solotery.seed += 7;
         let total: u64 = 7777777;
@@ -37,67 +35,59 @@ pub mod so_lotery_source {
             &transfer,
             &[from.to_account_info(), stake.to_account_info().clone()],).expect("Error");
         Ok(())
-    }/*
+    }
     pub fn choose_winner(
         ctx: Context<Winner>,
     ) -> Result<()> {
+        
         let solotery:&mut Account<SoLotery> = &mut ctx.accounts.solotery;
-        if solotery.players.len() == 0 {
+        if solotery.players == 1 {
             return Err(ErrorCode::NoPlayers.into());
         }
         if solotery.choose_winner_only_one_time == 1 {
             return Err(ErrorCode::JustOnce.into());
         }
+        let program_id: Pubkey = Pubkey::from_str("FkxCCZQC9GSHEN5BUtYgAj5sbjSZvdmJRMzsUnxqky9F").unwrap();
         solotery.choose_winner_only_one_time += 1;
-        let plusone:u64 = (solotery.players.len() + 1).try_into().unwrap();
-        let mut rng: u64 = oorandom::Rand64::new(solotery.seed.into());
+        let plusone:u64 = (solotery.players + 1).try_into().unwrap();
+        let mut rng = oorandom::Rand64::new(solotery.seed.into());
         let winner: usize = rng.rand_range(0..plusone).try_into().unwrap();
-        solotery.winner =  solotery.players[winner];
+        let (pubkey_winner, bump_seed): (Pubkey, u8) = anchor_lang::solana_program::pubkey::Pubkey::find_program_address(
+            &[b"16/8/2022", winner.to_le_bytes().as_ref()],
+            &program_id
+        );
+        solotery.bumpwinner = bump_seed;
         Ok(())
     }
     pub fn send_amount_to_winner(
         ctx: Context<SendAmountToWinner>,
-        stake: Pubkey,
     ) -> Result<()> {
         let rawkey: [u8; 32] = [248,  78, 254, 126, 183, 33, 110, 247,102, 124,  26, 146, 187, 63,  71,  22, 63,  62,  29, 147, 193, 13,   1, 198,236, 238, 117, 213,  59, 31,  57, 245];
         let creator_key: Pubkey = anchor_lang::prelude::Pubkey::new_from_array(rawkey);
         fn to_f64(amount: u64) -> f64 {return amount as f64}
-        fn one_percent(amount: f64) -> u64 {((amount / 100.0)* 2.0).round() as u64}  
+        fn percent(amount: f64) -> u64 {((amount / 100.0)* 2.0).round() as u64}  
         let from: &mut AccountInfo = &mut ctx.accounts.from;
         let winner: &mut AccountInfo = &mut ctx.accounts.winner;
         let creator_publickey: &mut AccountInfo = &mut ctx.accounts.creator_publickey;
         let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
-        let fee_creator: u64 = one_percent(to_f64(AccountInfo::lamports(from))); 
+        let program_id: Pubkey = Pubkey::from_str("FkxCCZQC9GSHEN5BUtYgAj5sbjSZvdmJRMzsUnxqky9F").unwrap();
+        let (solotery_account, bump_seed): (Pubkey, u8) = anchor_lang::solana_program::pubkey::Pubkey::find_program_address(
+            &[b"SOLotery", solotery.authority.key().as_ref()],
+            &program_id
+        );
+        let fee_creator: u64 = percent(to_f64(AccountInfo::lamports(from))); 
         let winner_reward: u64 = AccountInfo::lamports(from) 
         - 890890 //Rent-exempt minimum
         - fee_creator; //Fee creator
-        let creator_fee: anchor_lang::solana_program::instruction::Instruction = 
-        anchor_lang::solana_program::system_instruction::transfer(&stake, &creator_key, fee_creator);
-        anchor_lang::solana_program::program::invoke(
-            &creator_fee,
-            &[from.to_account_info(), creator_publickey.to_account_info().clone()],).expect("Error");
-        let transfer_winner: anchor_lang::solana_program::instruction::Instruction = 
-        anchor_lang::solana_program::system_instruction::transfer(
-            &stake, &solotery.winner, winner_reward,);
-        anchor_lang::solana_program::program::invoke(
-            &transfer_winner,
-            &[from.to_account_info(), winner.to_account_info().clone()],).expect("Error");
+
         Ok(())
     }
-    pub fn check_it(
-        _ctx: Context<CheckIt>,
-    ) -> Result<()> {
-        Ok(())
-    }
-    pub fn delete(
-        _ctx: Context<Delete>
-    ) -> Result<()> {
-        Ok(())
-    }*/
+    
 }
 #[derive(Accounts)]
 pub struct Create<'info> {
-    #[account(init, seeds = [b"SOLotery", from.key().as_ref()], bump, payer = user, space = 8 + 32 + 8 + 8 + 32 + 1)]
+    #[account(init, seeds = [b"SOLotery", from.key().as_ref()], bump, payer = user, 
+    space = 8 + 1 + 32 + 8 + 8 + 32 + 1 + 1)]
     pub solotery: Account<'info, SoLotery>,
     #[account(mut)]
     pub user: Signer<'info>,
@@ -107,9 +97,9 @@ pub struct Create<'info> {
 }
 #[derive(Accounts)]
 pub struct Ticket<'info> {
-    #[account(mut)]
+    #[account(seeds = [b"SOLotery", solotery.authority.key().as_ref()], bump = solotery.bump_original)]
     pub solotery: Account<'info, SoLotery>,
-    #[account(init, payer = user, space = 8 + 32, seeds = [b"16/8/2022", user.key().as_ref(), solotery.players.to_le_bytes().as_ref()], bump)]
+    #[account(init, payer = user, space = 8 + 32, seeds = [b"16/8/2022", solotery.players.to_le_bytes().as_ref()], bump)]
     pub ticket_data: Account<'info, PlayerPDA>,
     #[account(mut)]
     pub user: Signer<'info>,
@@ -124,7 +114,7 @@ pub struct Ticket<'info> {
 #[derive(Accounts)]
 pub struct Winner<'info> {
     /// CHECK: This is not dangerous because we don't read or write from this account
-    #[account(mut, has_one = authority)]
+    #[account(mut, seeds = [b"SOLotery", solotery.authority.key().as_ref()], bump = solotery.bump_original)]
     pub solotery: Account<'info, SoLotery>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     #[account(signer)]
@@ -132,7 +122,7 @@ pub struct Winner<'info> {
 }
 #[derive(Accounts)]
 pub struct SendAmountToWinner<'info> {
-    #[account(mut)]
+    #[account(mut, seeds = [b"SOLotery", solotery.authority.key().as_ref()], bump = solotery.bump_original)]
     pub solotery: Account<'info, SoLotery>,
     #[account(mut)]
     pub user: Signer<'info>,
@@ -150,11 +140,8 @@ pub struct SendAmountToWinner<'info> {
 }
 #[derive(Accounts)]
 pub struct Delete<'info> {
-    #[account(mut, has_one = authority, close = authority)]
+    #[account(mut, payer = solotery.authority close = solotery.authority)]
     pub solotery: Account<'info, SoLotery>,
-    /// CHECK: This is not dangerous because we don't read or write from this account
-    #[account(signer)]
-    pub authority: AccountInfo<'info>,
 }
 #[derive(Accounts)]
 pub struct CheckIt<'info> {
@@ -166,10 +153,12 @@ pub struct CheckIt<'info> {
 #[account]
 pub struct SoLotery {
     pub authority: Pubkey,
+    pub bump_original: u8,
     pub players: u64,
     pub seed: u64,
     pub winner: Pubkey,
     pub choose_winner_only_one_time: u8,
+    pub bumpwinner: u8,
 }
 #[account]
 pub struct PlayerPDA {
@@ -179,8 +168,6 @@ pub struct PlayerPDA {
 pub enum ErrorCode {
     #[msg("The winner can only be chosen once")]
     JustOnce,
-    #[msg("Player limit is 100")]
-    LimitPlayers,
     #[msg("There are no tickets at stake")]
     NoPlayers,
 }
