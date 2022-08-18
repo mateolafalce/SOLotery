@@ -2,7 +2,7 @@ use anchor_lang::{prelude::*,
 solana_program::account_info::AccountInfo
 };use core::mem::size_of; use std::str::FromStr;
 use oorandom; 
-declare_id!("FkxCCZQC9GSHEN5BUtYgAj5sbjSZvdmJRMzsUnxqky9F");
+declare_id!("7uzUgWB8BUQigpMTxiDhKtaru5MvziRtiM1BDFn3NHLe");
 #[program]
 pub mod so_lotery_source {
     use super::*;
@@ -19,6 +19,7 @@ pub mod so_lotery_source {
         solotery.seed = 193;
         solotery.players = 1;
         solotery.choose_winner_only_one_time = 0;
+        solotery.bump_original = *ctx.bumps.get("user_stats").unwrap();
         Ok(())
     }
     pub fn ticket(
@@ -60,7 +61,7 @@ pub mod so_lotery_source {
         if solotery.choose_winner_only_one_time == 1 {
             return Err(ErrorCode::JustOnce.into());
         }
-        let program_id: Pubkey = Pubkey::from_str("FkxCCZQC9GSHEN5BUtYgAj5sbjSZvdmJRMzsUnxqky9F").unwrap();
+        let program_id: Pubkey = Pubkey::from_str("7uzUgWB8BUQigpMTxiDhKtaru5MvziRtiM1BDFn3NHLe").unwrap();
         solotery.choose_winner_only_one_time += 1;
         let plusone:u64 = (solotery.players + 1).try_into().unwrap();
         let mut rng = oorandom::Rand64::new(solotery.seed.into());
@@ -90,7 +91,7 @@ pub mod so_lotery_source {
         let winner: &mut AccountInfo = &mut ctx.accounts.winner;
         let creator_publickey: &mut AccountInfo = &mut ctx.accounts.creator_publickey;
         let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
-        let program_id: Pubkey = Pubkey::from_str("FkxCCZQC9GSHEN5BUtYgAj5sbjSZvdmJRMzsUnxqky9F").unwrap();
+        let program_id: Pubkey = Pubkey::from_str("7uzUgWB8BUQigpMTxiDhKtaru5MvziRtiM1BDFn3NHLe").unwrap();
         let (solotery_account, bump_seed): (Pubkey, u8) = anchor_lang::solana_program::pubkey::Pubkey::find_program_address(
             &[b"SOLotery", solotery.authority.key().as_ref()],
             &program_id
@@ -121,15 +122,16 @@ pub mod so_lotery_source {
     pub fn delete_solotery_pda(
         ctx: Context<DeleteSOLoteryPDA>
     ) -> Result<()> {
-        let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
         let secure_check: &mut Account<SecureCheck> = &mut ctx.accounts.secure_check;
         let signer_key: Pubkey = ctx.accounts.authority.key();
         let correct_payer: Pubkey = Pubkey::from_str("AbQWyJxGzmxC51t4EjYCg4b3rhS5sCUB4BHKMZWLcKdZ").unwrap();
-        let program_id: Pubkey = Pubkey::from_str("FkxCCZQC9GSHEN5BUtYgAj5sbjSZvdmJRMzsUnxqky9F").unwrap();
         secure_check.authority = correct_payer;
         if signer_key != correct_payer {
             return Err(ErrorCode::YouAreNotSOLotery.into());
         }
+        let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
+        let program_id: Pubkey = Pubkey::from_str("7uzUgWB8BUQigpMTxiDhKtaru5MvziRtiM1BDFn3NHLe").unwrap();
+        secure_check.authority = correct_payer;
         let (pubkey_program, bump_seed): (Pubkey, u8) = anchor_lang::solana_program::pubkey::Pubkey::find_program_address(
             &[b"SOLotery", solotery.authority.key().as_ref(), solotery.bump_original.to_le_bytes().as_ref()],
             &program_id
@@ -152,14 +154,14 @@ pub struct Create<'info> {
 }
 #[derive(Accounts)]
 pub struct Ticket<'info> {
-    #[account(seeds = [b"SOLotery", solotery.authority.key().as_ref()], bump = solotery.bump_original)]
+    #[account(mut, seeds = [b"SOLotery", user.key().as_ref()], bump = solotery.bump_original)]
     pub solotery: Account<'info, SoLotery>,
     #[account(init, payer = user, space = 8 + 32, seeds = [b"17/8/2022", solotery.players.to_le_bytes().as_ref()], bump)]
     pub ticket_data: Account<'info, PlayerPDA>,
     #[account(mut)]
     pub user: Signer<'info>,
     /// CHECK: This is not dangerous because we don't read or write from this account
-    #[account(mut, signer)]
+    #[account(mut)]
     pub from: AccountInfo<'info>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     #[account(mut)]
@@ -203,13 +205,15 @@ pub struct SendAmountToWinner<'info> {
 
 #[derive(Accounts)]
 pub struct DeleteSOLoteryPDA<'info> {
-    #[account(seeds = [b"SOLotery", solotery.authority.key().as_ref()], bump = solotery.bump_original, 
+    #[account(mut, seeds = [b"SOLotery", solotery.authority.key().as_ref()], bump = solotery.bump_original, 
     //close = solotery
 )]
     pub solotery: Account<'info, SoLotery>,
-    #[account(mut, has_one = authority, close = authority)]
+    #[account(init, payer = authority, space = 8)]
     pub secure_check: Account<'info, SecureCheck>,
+    #[account(mut)]
     pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
 } 
 
 #[derive(Accounts)]
