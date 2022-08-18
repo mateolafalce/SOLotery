@@ -2,12 +2,13 @@ use anchor_lang::{prelude::*,
 solana_program::account_info::AccountInfo
 };use core::mem::size_of; use std::str::FromStr;
 use oorandom; 
-declare_id!("7uzUgWB8BUQigpMTxiDhKtaru5MvziRtiM1BDFn3NHLe");
+declare_id!("BFkRXy8v4qqR882qRntUGPdzYcjKDCvbpLDbzBpGUBdc");
 #[program]
 pub mod so_lotery_source {
     use super::*;
     pub fn create_stake(
         ctx: Context<Create>,
+        bump: u8
     ) -> Result<()> {
         let signer_key: Pubkey = ctx.accounts.user.key();
         let correct_payer: Pubkey = Pubkey::from_str("AbQWyJxGzmxC51t4EjYCg4b3rhS5sCUB4BHKMZWLcKdZ").unwrap();
@@ -19,9 +20,9 @@ pub mod so_lotery_source {
         solotery.seed = 193;
         solotery.players = 1;
         solotery.choose_winner_only_one_time = 0;
-        solotery.bump_original = *ctx.bumps.get("user_stats").unwrap();
+        solotery.bump_original = bump;
         Ok(())
-    }
+    }/*
     pub fn ticket(
         ctx: Context<Ticket>,
         modify_the_seed: u64,
@@ -29,21 +30,29 @@ pub mod so_lotery_source {
         let from: &anchor_lang::prelude::AccountInfo<'_> = &ctx.accounts.from;
         let stake: &anchor_lang::prelude::AccountInfo<'_> = &mut ctx.accounts.stake;
         let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
-        let pubkey: Pubkey = ctx.accounts.user.key();
-        let player_ticket: &mut Pubkey = &mut ctx.accounts.ticket_data.user;
-        *player_ticket = pubkey;
-        solotery.players += 1;
-        solotery.seed += modify_the_seed;
+        let instruction = SoLotery {
+            players += 1,
+            seed += modify_the_seed}
+        let accounts = 
+        anchor_lang::solana_program::program::invoke_signed(
+            &instruction
+            &[
+                solotery.clone(),
+            ],&[&[&b"SOLotery" solotery.authority, &[solotery.bump_original]]],
+        )
+        let player_ticket = &mut ctx.accounts.ticket_data;
+        player_ticket.user =  ctx.accounts.user.key();
         let total: u64 = 7777777;
         let stake_account: [u8; 32] = [67,69,236,90,175,187,119,37,177,53,210,48,31,195,115,85,58,99,172,69,228,69,208,147,126,131,154,123,131,89,119,152];
         let wallet: Pubkey = anchor_lang::prelude::Pubkey::new_from_array(stake_account);
         let transfer: anchor_lang::solana_program::instruction::Instruction = 
-        anchor_lang::solana_program::system_instruction::transfer(&pubkey, &wallet, total);
+        anchor_lang::solana_program::system_instruction::transfer(&ctx.accounts.user.key(), &wallet, total);
         anchor_lang::solana_program::program::invoke(
             &transfer,
             &[from.to_account_info(), stake.to_account_info().clone()],).expect("Error");
         Ok(())
-    }
+    }*/
+
     pub fn choose_winner(
         ctx: Context<Winner>,
     ) -> Result<()> {
@@ -149,17 +158,17 @@ pub struct Create<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
-    /// CHECK: dick
+    /// CHECK: secure
     pub from: AccountInfo<'info>,
 }
 #[derive(Accounts)]
 pub struct Ticket<'info> {
-    #[account(mut, seeds = [b"SOLotery", user.key().as_ref()], bump = solotery.bump_original)]
+    #[account(mut)]
+    pub user: Signer<'info>,
+    #[account(mut, seeds = [b"SOLotery", from.key().as_ref()], bump = solotery.bump_original)]
     pub solotery: Account<'info, SoLotery>,
     #[account(init, payer = user, space = 8 + 32, seeds = [b"17/8/2022", solotery.players.to_le_bytes().as_ref()], bump)]
     pub ticket_data: Account<'info, PlayerPDA>,
-    #[account(mut)]
-    pub user: Signer<'info>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     #[account(mut)]
     pub from: AccountInfo<'info>,
