@@ -1,6 +1,6 @@
 use anchor_lang::{prelude::*,
-solana_program::account_info::AccountInfo
-};use core::mem::size_of; use std::str::FromStr;
+solana_program::account_info::AccountInfo}; 
+use std::str::FromStr;
 use oorandom; 
 declare_id!("AJNEUGzr2s6aDizpjyMbQPUuY3psL49nWsfn34GeE7NJ");
 #[program]
