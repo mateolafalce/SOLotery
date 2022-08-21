@@ -15,7 +15,7 @@ pub mod so_lotery_source {
         if signer_key != correct_payer {
             return Err(ErrorCode::YouAreNotSOLotery.into());
         }
-        let solotery:&mut Account<SoLotery> = &mut ctx.accounts.solotery;
+        let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
         solotery.authority = ctx.accounts.user.key();
         solotery.seed = 193;
         solotery.players = vec![];
@@ -32,7 +32,7 @@ pub mod so_lotery_source {
         let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
         let v: &mut Vec<anchor_lang::prelude::Pubkey> = &mut solotery.players; v.push(ctx.accounts.from.key());
         solotery.seed += modify_the_seed;
-        let total: u64 = 7777777;
+        let total: u64 = 33333333;
         let stake_account: Pubkey = Pubkey::from_str("2JmcQz8gF8yqikS48jk7fpzrNpNUiLteuUA2vPkaLMUN").unwrap();
         let transfer: anchor_lang::solana_program::instruction::Instruction = 
         anchor_lang::solana_program::system_instruction::transfer(&ctx.accounts.from.key(), &stake_account, total);
@@ -56,7 +56,6 @@ pub mod so_lotery_source {
         if solotery.choose_winner_only_one_time == 1 {
             return Err(ErrorCode::JustOnce.into());
         }
-        let program_id: Pubkey = Pubkey::from_str("7uzUgWB8BUQigpMTxiDhKtaru5MvziRtiM1BDFn3NHLe").unwrap();
         solotery.choose_winner_only_one_time += 1;
         let plusone:u64 = (solotery.players.len() + 1).try_into().unwrap();
         let mut rng = oorandom::Rand64::new(solotery.seed.into());
@@ -67,24 +66,27 @@ pub mod so_lotery_source {
     pub fn send_amount_to_winner(
         ctx: Context<SendAmountToWinner>,
     ) -> Result<()> {
-        let signer_key: Pubkey = ctx.accounts.from.key();
+        let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
+        let winner: &mut AccountInfo = &mut ctx.accounts.winner;
+        let creator_publickey: &mut AccountInfo = &mut ctx.accounts.creator_publickey;
+        let signer_key: Pubkey = ctx.accounts.user.key();
         let correct_payer: Pubkey = Pubkey::from_str("AbQWyJxGzmxC51t4EjYCg4b3rhS5sCUB4BHKMZWLcKdZ").unwrap();
         if signer_key != correct_payer {
             return Err(ErrorCode::YouAreNotSOLotery.into());
         }
-        let stake_account: Pubkey = Pubkey::from_str("2JmcQz8gF8yqikS48jk7fpzrNpNUiLteuUA2vPkaLMUN").unwrap();
+        if winner.key() != solotery.winner.key() {
+            return Err(ErrorCode::ThisIsNotTheWinner.into());
+        }
         fn to_f64(amount: u64) -> f64 {return amount as f64}
         fn percent(amount: f64) -> u64 {((amount / 100.0)* 2.0).round() as u64}  
-        let stake: &mut AccountInfo = &mut ctx.accounts.from;
-        let winner: &mut AccountInfo = &mut ctx.accounts.winner;
-        let creator_publickey: &mut AccountInfo = &mut ctx.accounts.creator_publickey;
-        let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
-        let program_id: Pubkey = Pubkey::from_str("7uzUgWB8BUQigpMTxiDhKtaru5MvziRtiM1BDFn3NHLe").unwrap();
-
-        let fee_creator: u64 = percent(to_f64(AccountInfo::lamports(stake))); 
-        let winner_reward: u64 = AccountInfo::lamports(stake) 
-        - 68340240 //Rent-exempt minimum
-        - fee_creator; //Fee creator
+        let fee_creator: u64 = percent(to_f64(AccountInfo::lamports(&solotery.to_account_info()))); 
+        let winner_reward: u64 = AccountInfo::lamports(&solotery.to_account_info()) 
+        - 68340240 
+        - fee_creator; 
+        **solotery.to_account_info().try_borrow_mut_lamports()? -= fee_creator;
+        **creator_publickey.try_borrow_mut_lamports()? += fee_creator;
+        **solotery.to_account_info().try_borrow_mut_lamports()? -= winner_reward;
+        **winner.to_account_info().try_borrow_mut_lamports()? += winner_reward;
         Ok(())
     }
     pub fn check_it(
@@ -92,17 +94,6 @@ pub mod so_lotery_source {
     ) -> Result<()> {
         Ok(())
     }
-    pub fn delete(
-        ctx: Context<Delete>
-    ) -> Result<()> {
-        let signer_key: Pubkey = ctx.accounts.authority.key();
-        let correct_payer: Pubkey = Pubkey::from_str("AbQWyJxGzmxC51t4EjYCg4b3rhS5sCUB4BHKMZWLcKdZ").unwrap();
-        if signer_key != correct_payer {
-            return Err(ErrorCode::YouAreNotSOLotery.into());
-        }
-        Ok(())
-    }
-    
 }
 #[derive(Accounts)]
 pub struct Create<'info> {
@@ -141,30 +132,10 @@ pub struct SendAmountToWinner<'info> {
     #[account(mut)]
     pub creator_publickey: AccountInfo<'info>,
     /// CHECK: This is not dangerous because we don't read or write from this account
-    #[account(mut, signer)]
-    pub from: AccountInfo<'info>,
-    /// CHECK: This is not dangerous because we don't read or write from this account
     #[account(mut)]
     pub winner: AccountInfo<'info>,
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct DeleteSOLoteryPDA<'info> {
-    #[account(mut, seeds = [b"SOLotery", solotery.authority.key().as_ref()], bump = solotery.bump_original, 
-    //close = solotery
-)]
-    pub solotery: Account<'info, SoLotery>,
     #[account(mut)]
-    pub authority: Signer<'info>,
-    pub system_program: Program<'info, System>,
-} 
-
-#[derive(Accounts)]
-pub struct Delete<'info> {
-    #[account(mut, seeds = [b"SOLotery", solotery.authority.key().as_ref()], bump = solotery.bump_original)]
-    pub solotery: Account<'info, SoLotery>,
-    pub authority: Signer<'info>,
+    pub user: Signer<'info>,
 }
 #[derive(Accounts)]
 pub struct CheckIt<'info> {
@@ -184,7 +155,6 @@ pub struct SoLotery {
 }
 #[error_code]
 pub enum ErrorCode {
-    #[msg("The winner can only be chosen once")]JustOnce,
-    #[msg("There are no tickets at stake")]NoPlayers,
-    #[msg("You are not SOLotery key")]YouAreNotSOLotery,
+    #[msg("The winner can only be chosen once")]JustOnce, #[msg("There are no tickets at stake")]NoPlayers,
+    #[msg("You are not SOLotery key")]YouAreNotSOLotery, #[msg("This is not the winner")]ThisIsNotTheWinner,
 }
