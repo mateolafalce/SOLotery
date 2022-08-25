@@ -7,7 +7,7 @@ use anchor_lang::{
 use std::str::FromStr;
 use oorandom;
 
-declare_id!("4c65uGTZrvmngGgYEzQQUnSGJY87Xq9ujRRdN5UQyEk4");
+declare_id!("2TMneXGYLiCXa7NZhXhWwoKbAEZ2EFEYL66ez1TdSC7J");
 
 #[program]
 pub mod mateosolotery {
@@ -36,12 +36,15 @@ pub mod mateosolotery {
     pub fn ticket(
         ctx: Context<AmericanTicket>,
         modify_the_seed: u64,
+
     ) -> Result<()> {
-        let program_id: Pubkey = Pubkey::from_str("4c65uGTZrvmngGgYEzQQUnSGJY87Xq9ujRRdN5UQyEk4").unwrap();
+        let program_id: Pubkey = Pubkey::from_str("2TMneXGYLiCXa7NZhXhWwoKbAEZ2EFEYL66ez1TdSC7J").unwrap();
         let from: &anchor_lang::prelude::AccountInfo<'_> = &ctx.accounts.from;
         let stake: &anchor_lang::prelude::AccountInfo<'_> = &mut ctx.accounts.stake;
         let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
+        let ticket: &mut Account<TicketStruct> = &mut ctx.accounts.ticket;
         solotery.seed += modify_the_seed;
+        ticket.authority = ctx.accounts.from.key();
         if solotery.american_stake == 254 {
             return Err(ErrorCode::Limit.into());
         }
@@ -62,7 +65,7 @@ pub mod mateosolotery {
         //let clock: Clock = Clock::get().unwrap();
         let solotery_authority: Pubkey = ctx.accounts.solotery_authority.key();
         let correct_payer: Pubkey = Pubkey::from_str("9qZyLw1TvBVdk4rAUKcS628ByYWGvMSib2L1Uu3QUfee").unwrap();
-        let program_id: Pubkey = Pubkey::from_str("4c65uGTZrvmngGgYEzQQUnSGJY87Xq9ujRRdN5UQyEk4").unwrap();
+        let program_id: Pubkey = Pubkey::from_str("2TMneXGYLiCXa7NZhXhWwoKbAEZ2EFEYL66ez1TdSC7J").unwrap();
         if solotery_authority != correct_payer {
             return Err(ErrorCode::YouAreNotSOLotery.into());
         }
@@ -94,8 +97,8 @@ pub mod mateosolotery {
     ) -> Result<()> {
         //let clock: Clock = Clock::get().unwrap();
         let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
-        //let winner: &mut AccountInfo = &mut ctx.accounts.winner;
-        let winner: &mut Account<TicketStruct> = &mut ctx.accounts.winner;
+        let winner: &mut AccountInfo = &mut ctx.accounts.winner;
+        let pda_winner: &mut Account<TicketStruct> = &mut ctx.accounts.pda_winner;
         let creator_publickey: &mut AccountInfo = &mut ctx.accounts.creator_publickey;
         let solotery_authority: Pubkey = ctx.accounts.solotery_authority.key();
         let correct_payer: Pubkey = Pubkey::from_str("9qZyLw1TvBVdk4rAUKcS628ByYWGvMSib2L1Uu3QUfee").unwrap();
@@ -106,7 +109,10 @@ pub mod mateosolotery {
         if solotery.winner == 0 {
             return Err(ErrorCode::NoWinner.into());
         }
-        if winner.key() != solotery.winner_publickey.key() {
+        if pda_winner.key() != solotery.winner_publickey {
+            return Err(ErrorCode::YouAreNotSOLotery.into());
+        }
+        if winner.key() != pda_winner.authority.key() {
             return Err(ErrorCode::ThisIsNotTheWinner.into());
         }
         if solotery_authority != correct_payer {
@@ -185,8 +191,9 @@ pub struct SendAmountToWinner<'info> {
     pub creator_publickey: AccountInfo<'info>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     #[account(mut)]
-    pub winner: Account<'info, TicketStruct>,
-
+    pub winner: AccountInfo<'info>,
+    #[account(mut)]
+    pub pda_winner: Account<'info, TicketStruct>,
     #[account(mut)]
     pub solotery_authority: Signer<'info>,
 }
