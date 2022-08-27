@@ -7,7 +7,7 @@ use anchor_lang::{
 use std::str::FromStr;
 use oorandom;
 
-declare_id!("2TMneXGYLiCXa7NZhXhWwoKbAEZ2EFEYL66ez1TdSC7J");
+declare_id!("3wJJgvawDZH1nWm8Qv6Bie5zGXzTM8dF7a25ofD5QgAT");
 
 #[program]
 pub mod mateosolotery {
@@ -36,9 +36,8 @@ pub mod mateosolotery {
     pub fn ticket(
         ctx: Context<AmericanTicket>,
         modify_the_seed: u64,
-
     ) -> Result<()> {
-        let program_id: Pubkey = Pubkey::from_str("2TMneXGYLiCXa7NZhXhWwoKbAEZ2EFEYL66ez1TdSC7J").unwrap();
+        let program_id: Pubkey = Pubkey::from_str("3wJJgvawDZH1nWm8Qv6Bie5zGXzTM8dF7a25ofD5QgAT").unwrap();
         let from: &anchor_lang::prelude::AccountInfo<'_> = &ctx.accounts.from;
         let stake: &anchor_lang::prelude::AccountInfo<'_> = &mut ctx.accounts.stake;
         let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
@@ -65,7 +64,7 @@ pub mod mateosolotery {
         //let clock: Clock = Clock::get().unwrap();
         let solotery_authority: Pubkey = ctx.accounts.solotery_authority.key();
         let correct_payer: Pubkey = Pubkey::from_str("9qZyLw1TvBVdk4rAUKcS628ByYWGvMSib2L1Uu3QUfee").unwrap();
-        let program_id: Pubkey = Pubkey::from_str("2TMneXGYLiCXa7NZhXhWwoKbAEZ2EFEYL66ez1TdSC7J").unwrap();
+        let program_id: Pubkey = Pubkey::from_str("3wJJgvawDZH1nWm8Qv6Bie5zGXzTM8dF7a25ofD5QgAT").unwrap();
         if solotery_authority != correct_payer {
             return Err(ErrorCode::YouAreNotSOLotery.into());
         }
@@ -76,19 +75,20 @@ pub mod mateosolotery {
         /*if clock.unix_timestamp < solotery.secure_check {
             return Err(ErrorCode::IncorrectTimestamp.into());
         }*/
-        solotery.choose_winner_only_one_time += 1;
         if solotery.american_stake == 1 {
             //solotery.secure_check += 86400;
             solotery.choose_winner_only_one_time -= 1;
         }
         if solotery.american_stake > 1 {
-            let plusone: u64 = (solotery.american_stake + 1).try_into().unwrap();
+            //let plusone: u64 = (solotery.american_stake + 1).try_into().unwrap();
             let mut rng: oorandom::Rand64 = oorandom::Rand64::new(solotery.seed.into());
-            let winner: usize = rng.rand_range(1..plusone).try_into().unwrap();
+            let winner: usize = rng.rand_range(1..(solotery.american_stake as u64)).try_into().unwrap();
             solotery.winner =  winner as u8;
-            let (winner, _bump) = Pubkey::find_program_address(&[solotery.day.as_bytes().as_ref(), solotery.winner.to_le_bytes().as_ref()], &program_id);
-            solotery.winner_publickey = winner;
+            let (winner_publickey, bump) = Pubkey::find_program_address(&[solotery.day.as_bytes().as_ref(), solotery.winner.to_le_bytes().as_ref()], &program_id);
+            solotery.winner_publickey = winner_publickey;
+            solotery.bump_winner = bump;
         }
+        solotery.choose_winner_only_one_time += 1;
         Ok(())
     }
     pub fn send_amount_to_winner(
@@ -98,7 +98,9 @@ pub mod mateosolotery {
         //let clock: Clock = Clock::get().unwrap();
         let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
         let winner: &mut AccountInfo = &mut ctx.accounts.winner;
-        let pda_winner: &mut Account<TicketStruct> = &mut ctx.accounts.pda_winner;
+        //let pda_winner: &mut Account<TicketStruct> = &mut ctx.accounts.pda_winner;
+        let winner_publickey: &mut AccountInfo = &mut ctx.accounts.winner_publickey;
+        let ticket_winner: &mut Account<TicketStruct> = &mut ctx.accounts.ticket;
         let creator_publickey: &mut AccountInfo = &mut ctx.accounts.creator_publickey;
         let solotery_authority: Pubkey = ctx.accounts.solotery_authority.key();
         let correct_payer: Pubkey = Pubkey::from_str("9qZyLw1TvBVdk4rAUKcS628ByYWGvMSib2L1Uu3QUfee").unwrap();
@@ -109,10 +111,10 @@ pub mod mateosolotery {
         if solotery.winner == 0 {
             return Err(ErrorCode::NoWinner.into());
         }
-        if pda_winner.key() != solotery.winner_publickey {
+        if winner.key() != solotery.winner_publickey {
             return Err(ErrorCode::YouAreNotSOLotery.into());
         }
-        if winner.key() != pda_winner.authority.key() {
+        if winner_publickey.key() != ticket_winner.authority.key() {
             return Err(ErrorCode::ThisIsNotTheWinner.into());
         }
         if solotery_authority != correct_payer {
@@ -125,7 +127,7 @@ pub mod mateosolotery {
         fn percent(amount: f64) -> u64 {((amount / 100.0)* 2.0).round() as u64}  
         let fee_creator: u64 = percent(to_f64(AccountInfo::lamports(&solotery.to_account_info()))); 
         let winner_reward: u64 = AccountInfo::lamports(&solotery.to_account_info()) 
-        - 1628640
+        - 1635700
         - fee_creator; 
         **solotery.to_account_info().try_borrow_mut_lamports()? -= fee_creator;
         **creator_publickey.try_borrow_mut_lamports()? += fee_creator;
@@ -137,12 +139,8 @@ pub mod mateosolotery {
         solotery.american_stake = (solotery.american_stake + 1) - solotery.american_stake;
         solotery.winner_publickey = system_program;
         solotery.day = new_day;
+        solotery.bump_winner = 0;
         //solotery.secure_check += 86400;
-        Ok(())
-    }
-    pub fn get_money(
-        _ctx: Context<CheckIt>,
-    ) -> Result<()> {
         Ok(())
     }
     pub fn check_it(
@@ -150,11 +148,16 @@ pub mod mateosolotery {
     ) -> Result<()> {
         Ok(())
     }
+    pub fn check_winner(
+        _ctx: Context<CheckWinner>,
+    ) -> Result<()> {
+        Ok(())
+    }
 }
 #[derive(Accounts)]
 pub struct Create<'info> {
     #[account(init, seeds = [b"SOLotery", user.key().as_ref()], bump, payer = user, 
-    space = 106)]
+    space = 107)]
     pub solotery: Account<'info, SoLotery>,
     #[account(mut)]
     pub user: Signer<'info>,
@@ -186,14 +189,17 @@ pub struct Winner<'info> {
 pub struct SendAmountToWinner<'info> {
     #[account(mut, seeds = [b"SOLotery", solotery.authority.key().as_ref()], bump = solotery.bump_original)]
     pub solotery: Account<'info, SoLotery>,
+    #[account(mut, seeds = [solotery.day.as_bytes().as_ref(), solotery.winner.to_le_bytes().as_ref()], bump = solotery.bump_winner)]
+    pub ticket: Account<'info, TicketStruct>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     #[account(mut)]
     pub creator_publickey: AccountInfo<'info>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     #[account(mut)]
     pub winner: AccountInfo<'info>,
+    /// CHECK: This is not dangerous because we don't read or write from this accoun
     #[account(mut)]
-    pub pda_winner: Account<'info, TicketStruct>,
+    pub winner_publickey: AccountInfo<'info>,
     #[account(mut)]
     pub solotery_authority: Signer<'info>,
 }
@@ -203,7 +209,17 @@ pub struct CheckIt<'info> {
     pub solotery: Account<'info, SoLotery>,
     #[account(mut)]
     pub user: Signer<'info>,
-}/*
+}
+#[derive(Accounts)]
+pub struct CheckWinner<'info> {
+    #[account(mut, seeds = [b"SOLotery", solotery.authority.key().as_ref()], bump = solotery.bump_original)]
+    pub solotery: Account<'info, SoLotery>,
+    #[account(mut, seeds = [solotery.day.as_bytes().as_ref(), solotery.winner.to_le_bytes().as_ref()], bump = solotery.bump_winner)]
+    pub ticket: Account<'info, TicketStruct>,
+    #[account(mut)]
+    pub user: Signer<'info>,
+}
+/*
 #[derive(Accounts)]
 pub struct ReceiveMoney<'info> {
     #[account(mut, seeds = [b"SOLotery", solotery.authority.key().as_ref()], bump = solotery.bump_original)]
@@ -217,6 +233,7 @@ pub struct ReceiveMoney<'info> {
 pub struct SoLotery {
     pub authority: Pubkey,
     pub bump_original: u8,
+    pub bump_winner: u8,
     pub american_stake: u8,
     pub winner: u8,
     pub winner_publickey: Pubkey,
