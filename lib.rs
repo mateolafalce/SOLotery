@@ -26,7 +26,7 @@ pub mod mateosolotery {
         solotery.lifetime255 = 1;
         solotery.choose_winner_only_one_time = 0;
         solotery.bump_original = bump;
-        solotery.secure_check = 1661637600;
+        solotery.secure_check = 1661810400;
         solotery.winner = 0;   
         Ok(())
     }
@@ -61,12 +61,12 @@ pub mod mateosolotery {
         if solotery.choose_winner_only_one_time == 1 {
             return Err(ErrorCode::JustOnce.into());
         }
-        /*if clock.unix_timestamp < solotery.secure_check {
+        if Clock::get().unwrap().unix_timestamp < solotery.secure_check {
             return Err(ErrorCode::IncorrectTimestamp.into());
-        }*/
+        }
         solotery.choose_winner_only_one_time += 1;
         if solotery.american_stake == 1 {
-            //solotery.secure_check += 79200;
+            solotery.secure_check += 86398;
             solotery.choose_winner_only_one_time -= 1;
             solotery.lifetime255 += 1;
         }
@@ -101,9 +101,9 @@ pub mod mateosolotery {
         if ctx.accounts.solotery_authority.key() != Pubkey::from_str("9RDz3M796x25qXfVGUSau3rze3WH4z8KesZe3MMBYfrZ").unwrap() {
             return Err(ErrorCode::YouAreNotSOLotery.into());
         }
-        /*if clock.unix_timestamp < solotery.secure_check {
+        if Clock::get().unwrap().unix_timestamp < solotery.secure_check {
             return Err(ErrorCode::IncorrectTimestamp.into());
-        }*/
+        }
         fn to_f64(amount: u64) -> f64 {return amount as f64}
         fn percent(amount: f64) -> u64 {((amount / 100.0)* 2.0).round() as u64}  
         let fee_creator: u64 = percent(to_f64(AccountInfo::lamports(&solotery.to_account_info()))); 
@@ -120,17 +120,9 @@ pub mod mateosolotery {
         solotery.winner_publickey = Pubkey::from_str("11111111111111111111111111111111").unwrap();
         solotery.bump_winner = 0;
         solotery.lifetime255 += 1;
-        //solotery.secure_check += 79200;
+        solotery.secure_check += 86398;
         Ok(())
-    }/*
-    pub fn delete_pda(
-        ctx: Context<Delete>,
-        lifetime255: u8,
-        american_stake: u8
-    ) -> Result<()> {
-
-        Ok(())
-    }*/
+    }
     pub fn check_it(
         _ctx: Context<CheckIt>
     ) -> Result<()> {
@@ -205,17 +197,7 @@ pub struct CheckWinner<'info> {
     pub ticket: Account<'info, TicketStruct>,
     #[account(mut)]
     pub user: Signer<'info>,
-}/*
-#[derive(Accounts)]
-pub struct Delete<'info> {
-    #[instruction(lifetime255: u8, american_stake: u8)]
-    #[account(mut, seeds = [b"SOLotery", solotery.authority.key().as_ref()], bump = solotery.bump_original)]
-    pub solotery: Account<'info, SoLotery>,
-    #[account(mut, seeds = [lifetime255, american_stake.winner.to_le_bytes().as_ref()], bump = solotery.bump_winner, close = user)]
-    pub ticket: Account<'info, TicketStruct>,
-    #[account(mut)]
-    pub user: Signer<'info>,
-}*/
+}
 #[account]
 pub struct SoLotery {
     pub authority: Pubkey, 
@@ -238,5 +220,5 @@ pub enum ErrorCode {
     #[msg("The winner can only be chosen once")]JustOnce, #[msg("You are not SOLotery key")]YouAreNotSOLotery, 
     #[msg("This is not the winner")]ThisIsNotTheWinner, #[msg("This is not the stake account")]WrongStake, 
     #[msg("No winner has been chosen")]NoWinner, #[msg("The player limit is 254")]Limit,
-    #[msg("Restart the program, solotery bump reached its limit")]RestartTheProgram
+    #[msg("Restart the program, solotery bump reached its limit")]RestartTheProgram, #[msg("19:00 Argentine time")]IncorrectTimestamp, 
 }
