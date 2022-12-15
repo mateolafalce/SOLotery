@@ -1,2 +1,2 @@
 # SOLotery
-The SOLotery program running in Solana.
+The SOLotery program running in Solana
