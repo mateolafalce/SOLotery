@@ -11,7 +11,10 @@ use crate::errors::ErrorCode;
 
 pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
     let winner: &mut AccountInfo = &mut ctx.accounts.winner_publickey;
-    let (correct_pda, _bump) = Pubkey::find_program_address(&[b"SOLotery"], &Pubkey::from_str("FMz7qxxUeqgCKZL2z96nBhp6mpyisdVEEuS4ppZG3bmH").unwrap());
+    let (correct_pda, _bump) = Pubkey::find_program_address(
+        &[b"SOLotery"],
+        &Pubkey::from_str("FMz7qxxUeqgCKZL2z96nBhp6mpyisdVEEuS4ppZG3bmH"
+    ).unwrap());
     // Ensure that the stake account provided in the context matches the correct PDA for the program.
     require!(ctx.accounts.stake.key() == correct_pda.key(), ErrorCode::WrongStake);
     // Ensure that the winner's account provided in the context matches the expected winner for the lottery.
@@ -20,21 +23,17 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
     require!(AccountInfo::lamports(&ctx.accounts.from.to_account_info()) >= 7777777, ErrorCode::AmountError);
     let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
         if solotery.players_state == false {
-                anchor_lang::solana_program::program::invoke(
-                &system_instruction::transfer(&ctx.accounts.from.key(), &solotery.key(), 7777777),
-                &[ctx.accounts.from.to_account_info(), ctx.accounts.stake.to_account_info().clone()],).expect("Error");
-                solotery.tickets_sold += 1;
-                solotery.players1.push(ctx.accounts.from.key());
-                let currents_players2: u64 = (solotery.players1.len() * 7777777).try_into().unwrap();
-                if solotery.winner2_selected == true {
-                    let amount: u64 = (solotery.players2.len() * 7777777).try_into().unwrap();
-                    **solotery.to_account_info().try_borrow_mut_lamports()? -= amount;
-                    **winner.to_account_info().try_borrow_mut_lamports()? += amount;
-                    solotery.players2 = [].to_vec();
-                    solotery.winner_publickey = Pubkey::from_str("11111111111111111111111111111111").unwrap();
-                    solotery.winner2_selected = false;
-                    msg!("Total amount: {} SOL", lamports_to_sol(amount));
-                }
+            anchor_lang::solana_program::program::invoke(
+            &system_instruction::transfer(&ctx.accounts.from.key(), &solotery.key(), 7777777),
+            &[ctx.accounts.from.to_account_info(), ctx.accounts.stake.to_account_info().clone()],).expect("Error");
+            solotery.tickets_sold += 1;
+            solotery.players1.push(ctx.accounts.from.key());
+            let currents_players2: u64 = (solotery.players1.len() * 7777777).try_into().unwrap();
+            if solotery.winner2_selected == true {
+                select_winner2(
+
+                )
+            }
                 if solotery.players1.len() == 300 {
                     require!(solotery.winner1_selected == false, ErrorCode::WinnerChosen);
                     solotery.players_state = true;
@@ -104,6 +103,18 @@ pub fn lamports_to_sol(lamport: u64) -> f64 {
     return (am / 1000000000.0) as f64;
 }
 
+pub fn select_winner2(
+    solotery: &mut Account<SoLotery>,
+    winner: &mut AccountInfo
+) -> Result<()> {
+    let amount: u64 = (solotery.players2.len() * 7777777).try_into().unwrap();
+    **solotery.to_account_info().try_borrow_mut_lamports()? -= amount;
+    **winner.to_account_info().try_borrow_mut_lamports()? += amount;
+    solotery.players2 = [].to_vec();
+    solotery.winner_publickey = Pubkey::from_str("11111111111111111111111111111111").unwrap();
+    solotery.winner2_selected = false;
+    msg!("Total amount: {} SOL", lamports_to_sol(amount));
+}
 
 #[derive(Accounts)]
 pub struct Ticket<'info> {
