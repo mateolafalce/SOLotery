@@ -97,10 +97,11 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
     Ok(())
 }
 
+
 pub fn lamports_to_sol(lamport: u64) -> f64 {
     let am: f64 = lamport as f64;
-    return (am / 1000000000.0) as f64
-    }
+    // Divide the input value by 1 billion to convert from lamports to Sol, and return the result.
+    return (am / 1000000000.0) as f64;
 }
 
 
