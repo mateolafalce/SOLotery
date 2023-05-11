@@ -105,13 +105,17 @@ pub fn select_winner2(
     winner: &mut AccountInfo
 ) -> Result<()> {
     let amount: u64 = (solotery.players2.len() * 7777777).try_into().unwrap();
+    // Transfer the funds from the lottery account to the winner's account
     **solotery.to_account_info().try_borrow_mut_lamports()? -= amount;
     **winner.to_account_info().try_borrow_mut_lamports()? += amount;
+    // Clear the list of players for the next round of the lottery
     solotery.players2 = [].to_vec();
+    // Set the winner public key to a default value
     solotery.winner_publickey = Pubkey::from_str("11111111111111111111111111111111").unwrap();
     solotery.winner2_selected = false;
-    msg!("Total amount: {} SOL", lamports_to_sol(amount));
+    msg!("Total amount: {} SOL", lamports_to_sol(amount)); // Print the total amount
 }
+
 
 pub fn select_winner1(
     solotery: &mut Account<SoLotery>,
