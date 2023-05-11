@@ -116,20 +116,20 @@ pub fn select_winner2(
     msg!("Total amount: {} SOL", lamports_to_sol(amount)); // Print the total amount
 }
 
-
 pub fn select_winner1(
     solotery: &mut Account<SoLotery>,
     winner: &mut AccountInfo
 ) -> Result<()> {
-    require!(solotery.winner1_selected == false, ErrorCode::WinnerChosen);
+    require!(solotery.winner1_selected == false, ErrorCode::WinnerChosen); // Check that a winner has not already been chosen.
     solotery.players_state = true;
-    let mut rng: oorandom::Rand64 = oorandom::Rand64::new((Clock::get().unwrap().unix_timestamp as u64).into());
-    let winner_choosed: usize = rng.rand_range(1..(solotery.players1.len() as u64)).try_into().unwrap();
-    solotery.winner_publickey =  solotery.players1[winner_choosed - 1];
+    let mut rng: oorandom::Rand64 = oorandom::Rand64::new((Clock::get().unwrap().unix_timestamp as u64).into()); // Create a new random number generator.
+    let winner_choosed: usize = rng.rand_range(1..(solotery.players1.len() as u64)).try_into().unwrap(); // Generate a random number within the range of players and convert it to a usize.
+    solotery.winner_publickey =  solotery.players1[winner_choosed - 1]; // Assign the winner's public key to the lottery account.
     solotery.winner1_selected = true;
-    solotery.time_check += 86398;
+    solotery.time_check += 86398; // Add 23 hours and 59 minutes to the lottery's time check.
     msg!("Chosen winner: {}", solotery.winner_publickey);
 }
+
 
 #[derive(Accounts)]
 pub struct Ticket<'info> {
