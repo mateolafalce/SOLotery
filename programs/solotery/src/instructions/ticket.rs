@@ -31,19 +31,16 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
             let currents_players2: u64 = (solotery.players1.len() * 7777777).try_into().unwrap();
             if solotery.winner2_selected == true {
                 select_winner2(
-
-                )
+                    solotery,
+                    winner
+                ).unwrap();
             }
-                if solotery.players1.len() == 300 {
-                    require!(solotery.winner1_selected == false, ErrorCode::WinnerChosen);
-                    solotery.players_state = true;
-                    let mut rng: oorandom::Rand64 = oorandom::Rand64::new((Clock::get().unwrap().unix_timestamp as u64).into());
-                    let winner_choosed: usize = rng.rand_range(1..(solotery.players1.len() as u64)).try_into().unwrap();
-                    solotery.winner_publickey =  solotery.players1[winner_choosed - 1];
-                    solotery.winner1_selected = true;
-                    solotery.time_check += 86398;
-                    msg!("Chosen winner: {}", solotery.winner_publickey);
-                }
+            if solotery.players1.len() == 300 {
+                select_winner1(
+                    solotery,
+                    winner
+                ).unwrap();
+            }
                 msg!("SOL sent successfully. You are already participating for the current amount of: {} SOL", lamports_to_sol(currents_players2));
                 if Clock::get().unwrap().unix_timestamp > solotery.time_check.try_into().unwrap() {
                     require!(solotery.winner1_selected == false, ErrorCode::WinnerChosen);
@@ -114,6 +111,20 @@ pub fn select_winner2(
     solotery.winner_publickey = Pubkey::from_str("11111111111111111111111111111111").unwrap();
     solotery.winner2_selected = false;
     msg!("Total amount: {} SOL", lamports_to_sol(amount));
+}
+
+pub fn select_winner1(
+    solotery: &mut Account<SoLotery>,
+    winner: &mut AccountInfo
+) -> Result<()> {
+    require!(solotery.winner1_selected == false, ErrorCode::WinnerChosen);
+    solotery.players_state = true;
+    let mut rng: oorandom::Rand64 = oorandom::Rand64::new((Clock::get().unwrap().unix_timestamp as u64).into());
+    let winner_choosed: usize = rng.rand_range(1..(solotery.players1.len() as u64)).try_into().unwrap();
+    solotery.winner_publickey =  solotery.players1[winner_choosed - 1];
+    solotery.winner1_selected = true;
+    solotery.time_check += 86398;
+    msg!("Chosen winner: {}", solotery.winner_publickey);
 }
 
 #[derive(Accounts)]
