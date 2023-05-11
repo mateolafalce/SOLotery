@@ -24,8 +24,9 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
     let solotery: &mut Account<SoLotery> = &mut ctx.accounts.solotery;
         if solotery.players_state == false {
             anchor_lang::solana_program::program::invoke(
-            &system_instruction::transfer(&ctx.accounts.from.key(), &solotery.key(), 7777777),
-            &[ctx.accounts.from.to_account_info(), ctx.accounts.stake.to_account_info().clone()],).expect("Error");
+                &system_instruction::transfer(&ctx.accounts.from.key(), &solotery.key(), 7777777),
+                &[ctx.accounts.from.to_account_info(), ctx.accounts.stake.to_account_info().clone()],
+            ).expect("Error");
             solotery.tickets_sold += 1;
             solotery.players1.push(ctx.accounts.from.key());
             let currents_players2: u64 = (solotery.players1.len() * 7777777).try_into().unwrap();
@@ -41,16 +42,14 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
                     winner
                 ).unwrap();
             }
-                msg!("SOL sent successfully. You are already participating for the current amount of: {} SOL", lamports_to_sol(currents_players2));
-                if Clock::get().unwrap().unix_timestamp > solotery.time_check.try_into().unwrap() {
-                    require!(solotery.winner1_selected == false, ErrorCode::WinnerChosen);
-                    solotery.players_state = true ;
-                    let mut rng: oorandom::Rand64 = oorandom::Rand64::new((Clock::get().unwrap().unix_timestamp as u64).into());
-                    let winner_choosed: usize = rng.rand_range(1..(solotery.players1.len() as u64)).try_into().unwrap();
-                    solotery.winner_publickey =  solotery.players1[winner_choosed - 1];
-                    solotery.winner1_selected = true;
-                    solotery.time_check += 86398;
-                    msg!("Chosen winner: {}", solotery.winner_publickey);
+            msg!(
+                "SOL sent successfully. You are already participating for the current amount of: {} SOL",
+                lamports_to_sol(currents_players2)
+            );
+            if Clock::get().unwrap().unix_timestamp > solotery.time_check.try_into().unwrap() {
+                    dead_line(
+                        solotery
+                    )
                 }
             } else {
                 anchor_lang::solana_program::program::invoke(
@@ -127,6 +126,19 @@ pub fn select_winner1(
     solotery.winner_publickey =  solotery.players1[winner_choosed - 1]; // Assign the winner's public key to the lottery account.
     solotery.winner1_selected = true;
     solotery.time_check += 86398; // Add 23 hours and 59 minutes to the lottery's time check.
+    msg!("Chosen winner: {}", solotery.winner_publickey);
+}
+
+pub fn dead_line(
+    solotery: &mut Account<SoLotery>,
+) -> <()> {
+    require!(solotery.winner1_selected == false, ErrorCode::WinnerChosen);
+    solotery.players_state = true ;
+    let mut rng: oorandom::Rand64 = oorandom::Rand64::new((Clock::get().unwrap().unix_timestamp as u64).into());
+    let winner_choosed: usize = rng.rand_range(1..(solotery.players1.len() as u64)).try_into().unwrap();
+    solotery.winner_publickey =  solotery.players1[winner_choosed - 1];
+    solotery.winner1_selected = true;
+    solotery.time_check += 86398;
     msg!("Chosen winner: {}", solotery.winner_publickey);
 }
 
