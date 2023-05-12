@@ -38,10 +38,10 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
             }
             msg!(
                 "SOL sent successfully. You are already participating for the current amount of: {} SOL",
-                lamports_to_sol(currents_players2)
+                lamports_to_sol(currents_players2).unwrap();
             );
             if Clock::get().unwrap().unix_timestamp > solotery.time_check.try_into().unwrap() {
-                    dead_line(solotery)
+                    dead_line(solotery).unwrap();
                 }
             } else {
                 anchor_lang::solana_program::program::invoke(
@@ -80,8 +80,7 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
 
 pub fn lamports_to_sol(lamport: u64) -> f64 {
     let am: f64 = lamport as f64;
-    // Divide the input value by 1 billion to convert from lamports to Sol, and return the result.
-    return (am / 1000000000.0) as f64;
+    return (am / 1000000000.0) as f64; // Convert from lamports to Sol, and return the result.
 }
 
 pub fn transfer_winner1(
@@ -135,7 +134,6 @@ pub fn dead_line(
 ) -> <()> {
     require!(solotery.winner1_selected == false, ErrorCode::WinnerChosen);
     solotery.players_state = true;
-
     // initialize a random number generator using the current timestamp as the seed
     let mut rng: oorandom::Rand64 = oorandom::Rand64::new((Clock::get().unwrap().unix_timestamp as u64).into());
     // generate a random index to select the winner from the list of players

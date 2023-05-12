@@ -16,7 +16,8 @@ SOLotery stands out for its security and technological advancement by adopting b
 
 With SOLotery, players can enjoy a fairer, more transparent and more accessible lottery experience, without having to worry about intermediaries or excessive costs. SOLotery represents a great step towards the democratization of lotteries and access to new technologies in this field. I invite you to learn more about this exciting project in my GitHub repository!
 
-<h3 align="center">Init the stake program</h3>
+<details>
+<summary>🏦Init the stake program</summary>
 
 ```rust
 pub fn create_stake(
@@ -53,6 +54,8 @@ The function sets the value of different fields of the "solotery" account with d
 In particular, the function sets the original "bump" number of the "solotery" lottery account using the "find_program_address" function of the Solana Rust SDK library. In addition, it sets the default values ​​for the fields "players1", "players2", "time_check", "players_state", "winner1_selected", "winner2_selected", "tickets_sold", and "winner_publickey".
 
 Finally, the function returns an "Ok(())" result if the update was successful.
+
+</details>
 
 <h3 align="center">Buy a ticket</h3>
 
