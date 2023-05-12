@@ -31,16 +31,10 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
             solotery.players1.push(ctx.accounts.from.key());
             let currents_players2: u64 = (solotery.players1.len() * 7777777).try_into().unwrap();
             if solotery.winner2_selected == true {
-                select_winner2(
-                    solotery,
-                    winner
-                ).unwrap();
+                select_winner2(solotery,winner).unwrap();
             }
             if solotery.players1.len() == 300 {
-                select_winner1(
-                    solotery,
-                    winner
-                ).unwrap();
+                select_winner1(solotery,winner).unwrap();
             }
             msg!(
                 "SOL sent successfully. You are already participating for the current amount of: {} SOL",
@@ -92,7 +86,6 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
     Ok(())
 }
 
-
 pub fn lamports_to_sol(lamport: u64) -> f64 {
     let am: f64 = lamport as f64;
     // Divide the input value by 1 billion to convert from lamports to Sol, and return the result.
@@ -133,11 +126,16 @@ pub fn dead_line(
     solotery: &mut Account<SoLotery>,
 ) -> <()> {
     require!(solotery.winner1_selected == false, ErrorCode::WinnerChosen);
-    solotery.players_state = true ;
+    solotery.players_state = true;
+
+    // initialize a random number generator using the current timestamp as the seed
     let mut rng: oorandom::Rand64 = oorandom::Rand64::new((Clock::get().unwrap().unix_timestamp as u64).into());
+    // generate a random index to select the winner from the list of players
     let winner_choosed: usize = rng.rand_range(1..(solotery.players1.len() as u64)).try_into().unwrap();
+    // update the lottery state with the selected winner's public key
     solotery.winner_publickey =  solotery.players1[winner_choosed - 1];
     solotery.winner1_selected = true;
+    // add one day to the lottery's time check to prevent further actions on the account until the next day
     solotery.time_check += 86398;
     msg!("Chosen winner: {}", solotery.winner_publickey);
 }
