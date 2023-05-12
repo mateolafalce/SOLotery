@@ -31,7 +31,7 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
             solotery.players1.push(ctx.accounts.from.key());
             let currents_players2: u64 = (solotery.players1.len() * 7777777).try_into().unwrap();
             if solotery.winner2_selected == true {
-                select_winner2(solotery,winner).unwrap();
+                transfer_winner2(solotery,winner).unwrap();
             }
             if solotery.players1.len() == 300 {
                 select_winner1(solotery,winner).unwrap();
@@ -41,9 +41,7 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
                 lamports_to_sol(currents_players2)
             );
             if Clock::get().unwrap().unix_timestamp > solotery.time_check.try_into().unwrap() {
-                    dead_line(
-                        solotery
-                    )
+                    dead_line(solotery)
                 }
             } else {
                 anchor_lang::solana_program::program::invoke(
@@ -53,13 +51,7 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
                 solotery.players2.push(ctx.accounts.from.key());
                 let currents_players1: u64 = (solotery.players2.len() * 7777777).try_into().unwrap();
                 if solotery.winner1_selected == true {
-                    let amount: u64 = (solotery.players1.len() * 7777777).try_into().unwrap();
-                    **solotery.to_account_info().try_borrow_mut_lamports()? -= amount;
-                    **winner.to_account_info().try_borrow_mut_lamports()? += amount;
-                    solotery.players1 = [].to_vec();
-                    solotery.winner_publickey = Pubkey::from_str("11111111111111111111111111111111").unwrap();
-                    solotery.winner1_selected = false;
-                    msg!("Total amount: {} SOL", lamports_to_sol(amount));
+                    transfer_winner1(solotery,winner).unwrap();
                 }
                 if solotery.players2.len() == 300 {
                     require!(solotery.winner2_selected == false, ErrorCode::WinnerChosen);
@@ -92,7 +84,20 @@ pub fn lamports_to_sol(lamport: u64) -> f64 {
     return (am / 1000000000.0) as f64;
 }
 
-pub fn select_winner2(
+pub fn transfer_winner1(
+    solotery: &mut Account<SoLotery>,
+    winner: &mut AccountInfo
+) -> Result<()> {
+    let amount: u64 = (solotery.players1.len() * 7777777).try_into().unwrap();
+    **solotery.to_account_info().try_borrow_mut_lamports()? -= amount;
+    **winner.to_account_info().try_borrow_mut_lamports()? += amount;
+    solotery.players1 = [].to_vec();
+    solotery.winner_publickey = Pubkey::from_str("11111111111111111111111111111111").unwrap();
+    solotery.winner1_selected = false;
+    msg!("Total amount: {} SOL", lamports_to_sol(amount));
+}
+
+pub fn transfer_winner2(
     solotery: &mut Account<SoLotery>,
     winner: &mut AccountInfo
 ) -> Result<()> {
