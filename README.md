@@ -19,6 +19,8 @@ With SOLotery, players can enjoy a fairer, more transparent and more accessible 
 <details>
 <summary>🏦Init the stake program</summary>
 
+<br>
+
 ```rust
 pub fn create_stake(
     ctx: Context<Create>
