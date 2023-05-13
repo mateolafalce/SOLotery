@@ -54,14 +54,7 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
                     transfer_winner1(solotery,winner).unwrap();
                 }
                 if solotery.players2.len() == 300 {
-                    require!(solotery.winner2_selected == false, ErrorCode::WinnerChosen);
-                    solotery.players_state = false;
-                    let mut rng: oorandom::Rand64 = oorandom::Rand64::new((Clock::get().unwrap().unix_timestamp as u64).into());
-                    let winner_choosed: usize = rng.rand_range(1..(solotery.players2.len() as u64)).try_into().unwrap();
-                    solotery.winner_publickey =  solotery.players2[winner_choosed - 1];
-                    solotery.winner2_selected = true;
-                    solotery.time_check += 86398;
-                    msg!("Chosen winner: {}", solotery.winner_publickey);
+                    select_winner2(solotery,winner).unwarp();
                 }
                 msg!("SOL sent successfully. You are already participating for the current amount of: {} SOL", lamports_to_sol(currents_players1));
                 if Clock::get().unwrap().unix_timestamp > solotery.time_check.try_into().unwrap() {
@@ -126,6 +119,20 @@ pub fn select_winner1(
     solotery.winner_publickey =  solotery.players1[winner_choosed - 1]; // Assign the winner's public key to the lottery account.
     solotery.winner1_selected = true;
     solotery.time_check += 86398; // Add 23 hours and 59 minutes to the lottery's time check.
+    msg!("Chosen winner: {}", solotery.winner_publickey);
+}
+
+pub fn select_winner2(
+    solotery: &mut Account<SoLotery>,
+    winner: &mut AccountInfo
+) -> Result<()> {
+    require!(solotery.winner2_selected == false, ErrorCode::WinnerChosen);
+    solotery.players_state = false;
+    let mut rng: oorandom::Rand64 = oorandom::Rand64::new((Clock::get().unwrap().unix_timestamp as u64).into());
+    let winner_choosed: usize = rng.rand_range(1..(solotery.players2.len() as u64)).try_into().unwrap();
+    solotery.winner_publickey =  solotery.players2[winner_choosed - 1];
+    solotery.winner2_selected = true;
+    solotery.time_check += 86398;
     msg!("Chosen winner: {}", solotery.winner_publickey);
 }
 
