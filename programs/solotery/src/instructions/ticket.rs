@@ -147,18 +147,20 @@ pub fn dead_line1(
     msg!("Chosen winner: {}", solotery.winner_publickey);
 }
 
+
 pub fn dead_line2(
-    solotery: &mut Account<SoLotery>,
+    solotery: &mut Account<SoLotery>
 ) -> <()> {
-    require!(solotery.winner2_selected == false, ErrorCode::WinnerChosen);
+    require!(solotery.winner2_selected == false, ErrorCode::WinnerChosen); // Ensure that the winner has not already been selected
     solotery.players_state = false ;
     let mut rng: oorandom::Rand64 = oorandom::Rand64::new((Clock::get().unwrap().unix_timestamp as u64).into());
-    let winner_choosed: usize = rng.rand_range(1..(solotery.players2.len() as u64)).try_into().unwrap();
-    solotery.winner_publickey =  solotery.players2[winner_choosed - 1];
+    let winner_choosed: usize = rng.rand_range(1..(solotery.players2.len() as u64)).try_into().unwrap(); // Generate a random number between 1 and the number of players, inclusive
+    solotery.winner_publickey =  solotery.players2[winner_choosed - 1]; // Assign the winner's public key based on the random number
     solotery.winner2_selected = true;
-    solotery.time_check += 86398;
+    solotery.time_check += 86398; // Update the time check to reflect that the game has ended
     msg!("Chosen winner: {}", solotery.winner_publickey);
 }
+
 
 
 #[derive(Accounts)]
