@@ -41,7 +41,7 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
                 lamports_to_sol(currents_players2).unwrap();
             );
             if Clock::get().unwrap().unix_timestamp > solotery.time_check.try_into().unwrap() {
-                    dead_line(solotery).unwrap();
+                    dead_line1(solotery).unwrap();
                 }
             } else {
                 anchor_lang::solana_program::program::invoke(
@@ -58,14 +58,7 @@ pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
                 }
                 msg!("SOL sent successfully. You are already participating for the current amount of: {} SOL", lamports_to_sol(currents_players1));
                 if Clock::get().unwrap().unix_timestamp > solotery.time_check.try_into().unwrap() {
-                    require!(solotery.winner2_selected == false, ErrorCode::WinnerChosen);
-                    solotery.players_state = false ;
-                    let mut rng: oorandom::Rand64 = oorandom::Rand64::new((Clock::get().unwrap().unix_timestamp as u64).into());
-                    let winner_choosed: usize = rng.rand_range(1..(solotery.players2.len() as u64)).try_into().unwrap();
-                    solotery.winner_publickey =  solotery.players2[winner_choosed - 1];
-                    solotery.winner2_selected = true;
-                    solotery.time_check += 86398;
-                    msg!("Chosen winner: {}", solotery.winner_publickey);
+                    dead_line2(solotery).unwrap();
                 }
             }
     Ok(())
@@ -137,7 +130,7 @@ pub fn select_winner2(
 }
 
 
-pub fn dead_line(
+pub fn dead_line1(
     solotery: &mut Account<SoLotery>,
 ) -> <()> {
     require!(solotery.winner1_selected == false, ErrorCode::WinnerChosen);
@@ -150,6 +143,19 @@ pub fn dead_line(
     solotery.winner_publickey =  solotery.players1[winner_choosed - 1];
     solotery.winner1_selected = true;
     // add one day to the lottery's time check to prevent further actions on the account until the next day
+    solotery.time_check += 86398;
+    msg!("Chosen winner: {}", solotery.winner_publickey);
+}
+
+pub fn dead_line2(
+    solotery: &mut Account<SoLotery>,
+) -> <()> {
+    require!(solotery.winner2_selected == false, ErrorCode::WinnerChosen);
+    solotery.players_state = false ;
+    let mut rng: oorandom::Rand64 = oorandom::Rand64::new((Clock::get().unwrap().unix_timestamp as u64).into());
+    let winner_choosed: usize = rng.rand_range(1..(solotery.players2.len() as u64)).try_into().unwrap();
+    solotery.winner_publickey =  solotery.players2[winner_choosed - 1];
+    solotery.winner2_selected = true;
     solotery.time_check += 86398;
     msg!("Chosen winner: {}", solotery.winner_publickey);
 }
