@@ -1,8 +1,9 @@
 [package]
 name = "solotery"
 version = "0.1.0"
-description = "Created with Anchor"
+description = ""
 edition = "2021"
+authors = ["Mateo Lafalce <mateo.lafalce04@gmail.com>"]
 
 [lib]
 crate-type = ["cdylib", "lib"]
