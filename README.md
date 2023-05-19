@@ -65,7 +65,9 @@ Finally, the function returns an "Ok(())" result if the update was successful.
 
 </details>
 
-<h3 align="center">Buy a ticket</h3>
+
+<details>
+<summary>🎫Buy a ticket/summary>
 
 ```rust
 pub fn ticket(
@@ -184,3 +186,5 @@ The program uses the Pubkey::find_program_address() function to generate a progr
 There are several requirements that the user must meet to participate in the lottery, such as having enough lamports, the winner must match the winner_publickey in the solotery account, and the stake account must match the PDA. If these requirements are not met, the program will return an error code.
 
 The program uses the oorandom crate to generate a random number for selecting the winner from the list of participants.
+
+</details>
