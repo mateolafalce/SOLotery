@@ -16,10 +16,7 @@ SOLotery stands out for its security and technological advancement by adopting b
 
 With SOLotery, players can enjoy a fairer, more transparent and more accessible lottery experience, without having to worry about intermediaries or excessive costs. SOLotery represents a great step towards the democratization of lotteries and access to new technologies in this field. I invite you to learn more about this exciting project in my GitHub repository!
 
-<details>
-<summary>🏦Init the stake program</summary>
-
-<br>
+## 🏦Init the stake program
 
 ```rust
 pub fn create_stake(
@@ -63,11 +60,8 @@ In particular, the function sets the original "bump" number of the "solotery" lo
 
 Finally, the function returns an "Ok(())" result if the update was successful.
 
-</details>
 
-
-<details>
-<summary>🎫Buy a ticket/summary>
+## 🎫Buy a ticket/summary>
 
 ```rust
 pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
@@ -250,4 +244,3 @@ There are several requirements that the user must meet to participate in the lot
 
 The program uses the oorandom crate to generate a random number for selecting the winner from the list of participants.
 
-</details>
