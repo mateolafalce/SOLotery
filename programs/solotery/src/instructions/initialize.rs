@@ -20,10 +20,8 @@ pub fn create_stake(ctx: Context<Create>) -> Result<()> {
 
 #[derive(Accounts)]
 pub struct Create<'info> {
-    // It must be initialized with the SOLotery::SIZE + 8 bytes of space (anchor).
-    #[account(init, seeds = [SOLOTERY], bump, payer = user, space = SoLotery::SIZE + 8)]
+    #[account(init, seeds = [SOLOTERY], bump, payer = user, space = SoLotery::SIZE)]
     pub solotery: Account<'info, SoLotery>,
-    // The user account that will pay for the SOLotery account's initialization.
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,

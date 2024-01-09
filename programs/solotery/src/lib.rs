@@ -5,7 +5,7 @@ pub mod instructions;
 pub mod state;
 pub mod utils;
 
-declare_id!("FMz7qxxUeqgCKZL2z96nBhp6mpyisdVEEuS4ppZG3bmH");
+declare_id!("Caj6vkJqXNP5rKVkQin3QPecjvZSoyujNUd5HvGmxVGX");
 
 #[program]
 pub mod solotery {
@@ -14,7 +14,7 @@ pub mod solotery {
     pub fn create_stake(ctx: Context<Create>) -> Result<()> {
         instructions::initialize::create_stake(ctx)
     }
-    pub fn ticket(ctx: Context<Ticket>) -> Result<()> {
+    pub fn sold_ticket(ctx: Context<Ticket>) -> Result<()> {
         instructions::ticket::ticket(ctx)
     }
 }

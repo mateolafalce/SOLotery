@@ -3,8 +3,6 @@ members = [
     "programs/*"
 ]
 
-authors = ["Mateo Lafalce <mateo.lafalce04@gmail.com>"]
-
 [profile.release]
 overflow-checks = true
 lto = "fat"
